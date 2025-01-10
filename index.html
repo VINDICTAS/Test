@@ -42,7 +42,7 @@
         return;
       }
 
-      const scene = new THREE.Scene();
+      const scene = new THREE.Scene();  // Scene defined here
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
 
@@ -52,8 +52,8 @@
 
       // Load character models and add them to the scene (example)
       const loader = new THREE.GLTFLoader();
-      await loadCharacter('https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Fetard.glb', [0, -1.5, -2], [0.4, 0.4, 0.4]);
-      await loadCharacter('https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Guitariste.glb', [1, -1.5, -3], [0.4, 0.4, 0.4]);
+      await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Fetard.glb', [0, -1.5, -2], [0.4, 0.4, 0.4]);
+      await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Guitarist.glb', [1, -1.5, -3], [0.4, 0.4, 0.4]);
 
       // Setup the WebGL renderer for the AR session
       renderer = new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: false, canvas: canvas, context: gl });
@@ -120,7 +120,7 @@
   });
 
   // Function to load character models (example)
-  async function loadCharacter(modelUrl, position, scale) {
+  async function loadCharacter(scene, modelUrl, position, scale) {
     const loader = new THREE.GLTFLoader();
     return new Promise((resolve, reject) => {
       loader.load(modelUrl, (gltf) => {
