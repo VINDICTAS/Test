@@ -1,20 +1,24 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AR Test</title>
-  <!-- three.js -->
+
+  <!-- Load Three.js -->
   <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
   <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
-  <link rel="stylesheet" href="styles.css"> <!-- Link to your separate CSS file -->
+
+  <!-- Link to the CSS for button -->
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-<!-- Button to start the AR session -->
+<!-- Button to start WebXR -->
 <button id="startButton" onclick="activateXR()">Start WebXR AR</button>
 
-<!-- AR Snapshot Button (visible on top of the live camera feed) -->
+<!-- AR Snapshot Button (this button should stay above the AR session) -->
 <button id="cameraButton" class="camera-button">
   📸 Take Snapshot
 </button>
@@ -28,12 +32,13 @@
   // Function to start WebXR AR session
   async function activateXR() {
     try {
-      // Cleanup any previous WebXR session and elements
+      // Cleanup any previous AR session
       const existingCanvas = document.querySelector("canvas");
       if (existingCanvas) {
         existingCanvas.remove();
       }
 
+      // Create a new canvas element for the AR session
       const canvas = document.createElement("canvas");
       document.body.appendChild(canvas);
       const gl = canvas.getContext("webgl", { xrCompatible: true });
@@ -43,7 +48,8 @@
         return;
       }
 
-      const scene = new THREE.Scene();  // Scene defined here
+      // Set up the 3D scene
+      const scene = new THREE.Scene();
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
       scene.add(ambientLight);
 
@@ -51,14 +57,14 @@
       directionalLight.position.set(1, 1, 1).normalize();
       scene.add(directionalLight);
 
-      // Setup the WebGL renderer for the AR session
+      // Set up the WebGL renderer for the AR session
       renderer = new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: false, canvas: canvas, context: gl });
       renderer.autoClear = false;
 
       const camera = new THREE.PerspectiveCamera();
       camera.matrixAutoUpdate = false;
 
-      // Start the WebXR AR session
+      // Request the WebXR immersive AR session
       session = await navigator.xr.requestSession("immersive-ar");
       session.updateRenderState({
         baseLayer: new XRWebGLLayer(session, gl),
@@ -89,17 +95,32 @@
 
       session.requestAnimationFrame(onXRFrame);
 
-      // Ensure the button remains visible
+      // Ensure the camera button stays above the AR canvas
       document.getElementById("cameraButton").style.zIndex = "1000"; // Ensure it stays above the AR content
     } catch (e) {
       console.error("Error starting WebXR session:", e);
     }
   }
 
-  // Event listener for the camera button
+  // Capture Snapshot function (simple screenshot from canvas)
+  function captureSnapshot() {
+    if (renderer && renderer.domElement) {
+      const canvas = renderer.domElement;
+      const dataURL = canvas.toDataURL("image/png");
+
+      // Open a new window with the captured snapshot
+      const win = window.open();
+      win.document.write('<img src="' + dataURL + '" />');
+    } else {
+      console.error("Renderer is not ready yet.");
+    }
+  }
+
+  // Add event listener for camera button (take snapshot)
   document.getElementById("cameraButton").addEventListener("click", function () {
-    alert("Button pressed - AR snapshot functionality coming soon!");
+    captureSnapshot();
   });
+
 </script>
 
 </body>
