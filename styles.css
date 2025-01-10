@@ -1,4 +1,4 @@
-/* Make the button visible on top of the camera feed */
+/* Ensure the button stays fixed on the screen above the AR content */
 .camera-button {
   position: fixed;
   top: 10px; /* Adjust position from the top of the screen */
@@ -9,7 +9,7 @@
   border: none;
   border-radius: 50%;
   font-size: 24px;
-  z-index: 1000; /* Ensure it stays above the AR session */
+  z-index: 1000; /* Ensure it stays above the AR content */
   cursor: pointer;
 }
 
