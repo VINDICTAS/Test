@@ -23,6 +23,7 @@
   let mixers = [];
   let clock = new THREE.Clock();
   let renderer;
+  let session;
 
   // Function to start WebXR AR session
   async function activateXR() {
@@ -51,9 +52,8 @@
       scene.add(directionalLight);
 
       // Load character models and add them to the scene (example)
-      const loader = new THREE.GLTFLoader();
       await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Fetard.glb', [0, -1.5, -2], [0.4, 0.4, 0.4]);
-      await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Guitariste.glb', [1, -1.5, -3], [0.4, 0.4, 0.4]);
+      await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Guitarist.glb', [1, -1.5, -3], [0.4, 0.4, 0.4]);
 
       // Setup the WebGL renderer for the AR session
       renderer = new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: false, canvas: canvas, context: gl });
@@ -63,7 +63,7 @@
       camera.matrixAutoUpdate = false;
 
       // Start the WebXR AR session
-      const session = await navigator.xr.requestSession("immersive-ar");
+      session = await navigator.xr.requestSession("immersive-ar");
       session.updateRenderState({
         baseLayer: new XRWebGLLayer(session, gl),
       });
@@ -99,14 +99,168 @@
 
   // Capture Snapshot from AR Canvas
   function captureSnapshot() {
-    const canvas = renderer.domElement;
-    const dataURL = canvas.toDataURL("image/png");
+    if (renderer && renderer.domElement) {
+      const canvas = renderer.domElement;
+      const dataURL = canvas.toDataURL("image/png");
 
-    // Create a new image element with the snapshot
-    const img = new Image();
-    img.src = dataURL;
-    const win = window.open();
-    win.document.write('<img src="' + dataURL + '" />');
+      // Create a new image element with the snapshot
+      const img = new Image();
+      img.src = dataURL;
+      const win = window.open();
+      win.document.write('<img src="' + dataURL + '" />');
+    } else {
+      console.error("Renderer is not ready yet.");
+    }
+  }
+
+  // Event listener for the camera button
+  document.getElementById("cameraButton").addEventListener("touchstart", function (event) {
+    event.preventDefault(); // Prevents default scrolling or zooming on touch
+    captureSnapshot(); // Call the function to capture the snapshot
+  });
+
+  document.getElementById("cameraButton").addEventListener("click", function () {
+    captureSnapshot(); // Handle clicks (for desktop or touch interactions)
+  });
+
+  // Function to load character models (example)
+  async function loadCharacter(scene, modelUrl, position, scale) {
+    const loader = new THREE.GLTFLoader();
+    return new Promise((resolve, reject) => {
+      loader.load(modelUrl, (gltf) => {
+        const model = gltf.scene;
+        model.position.set(...position);
+        model.scale.set(...scale);
+        scene.add(model);
+
+        if (gltf.animations && gltf.animations.length > 0) {
+          const mixer = new THREE.AnimationMixer(model);
+          const action = mixer.clipAction(gltf.animations[0]);
+          action.play();
+          mixers.push(mixer); // Add mixer to the array for animation
+        }
+
+        resolve(model);
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>AR Test</title>
+  <!-- three.js -->
+  <script src="https://unpkg.com/three@0.126.0/build/three.js"></script>
+  <script src="https://unpkg.com/three@0.126.0/examples/js/loaders/GLTFLoader.js"></script>
+  <link rel="stylesheet" href="styles.css"> <!-- Link to your separate CSS file -->
+</head>
+<body>
+
+<!-- Button to start the AR session -->
+<button onclick="activateXR()">Start WebXR AR</button>
+
+<!-- AR Snapshot Button (visible on top of the live camera feed) -->
+<button id="cameraButton" class="camera-button">
+  📸 Take Snapshot
+</button>
+
+<script>
+  let mixers = [];
+  let clock = new THREE.Clock();
+  let renderer;
+  let session;
+
+  // Function to start WebXR AR session
+  async function activateXR() {
+    try {
+      // Cleanup any previous WebXR session and elements
+      const existingCanvas = document.querySelector("canvas");
+      if (existingCanvas) {
+        existingCanvas.remove();
+      }
+
+      const canvas = document.createElement("canvas");
+      document.body.appendChild(canvas);
+      const gl = canvas.getContext("webgl", { xrCompatible: true });
+
+      if (!gl) {
+        console.error("WebGL context is not available.");
+        return;
+      }
+
+      const scene = new THREE.Scene();  // Scene defined here
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+      directionalLight.position.set(1, 1, 1).normalize();
+      scene.add(directionalLight);
+
+      // Load character models and add them to the scene (example)
+      await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Fetard.glb', [0, -1.5, -2], [0.4, 0.4, 0.4]);
+      await loadCharacter(scene, 'https://raw.githubusercontent.com/VINDICTAS/webxr-test/main/Guitarist.glb', [1, -1.5, -3], [0.4, 0.4, 0.4]);
+
+      // Setup the WebGL renderer for the AR session
+      renderer = new THREE.WebGLRenderer({ alpha: true, preserveDrawingBuffer: false, canvas: canvas, context: gl });
+      renderer.autoClear = false;
+
+      const camera = new THREE.PerspectiveCamera();
+      camera.matrixAutoUpdate = false;
+
+      // Start the WebXR AR session
+      session = await navigator.xr.requestSession("immersive-ar");
+      session.updateRenderState({
+        baseLayer: new XRWebGLLayer(session, gl),
+      });
+
+      const referenceSpace = await session.requestReferenceSpace("local");
+
+      const onXRFrame = (time, frame) => {
+        session.requestAnimationFrame(onXRFrame);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, session.renderState.baseLayer.framebuffer);
+
+        const pose = frame.getViewerPose(referenceSpace);
+        if (pose) {
+          const view = pose.views[0];
+          const viewport = session.renderState.baseLayer.getViewport(view);
+          renderer.setSize(viewport.width, viewport.height);
+
+          camera.matrix.fromArray(view.transform.matrix);
+          camera.projectionMatrix.fromArray(view.projectionMatrix);
+          camera.updateMatrixWorld(true);
+
+          const delta = clock.getDelta();
+          mixers.forEach((mixer) => mixer.update(delta));
+
+          renderer.render(scene, camera);
+        }
+      };
+
+      session.requestAnimationFrame(onXRFrame);
+    } catch (e) {
+      console.error("Error starting WebXR session:", e);
+    }
+  }
+
+  // Capture Snapshot from AR Canvas
+  function captureSnapshot() {
+    if (renderer && renderer.domElement) {
+      const canvas = renderer.domElement;
+      const dataURL = canvas.toDataURL("image/png");
+
+      // Create a new image element with the snapshot
+      const img = new Image();
+      img.src = dataURL;
+      const win = window.open();
+      win.document.write('<img src="' + dataURL + '" />');
+    } else {
+      console.error("Renderer is not ready yet.");
+    }
   }
 
   // Event listener for the camera button
